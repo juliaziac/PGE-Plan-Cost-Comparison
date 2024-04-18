@@ -3,11 +3,11 @@ import numpy as np
 import re
 import datetime
 
-def process_csv(filename: str): # -> tuple[pd.DataFrame, str]:
+def process_csv(filename) -> tuple[pd.DataFrame, str]:
     """Converts a PGE csv file into a dataframe and its energy type name.
 
     Args:
-        filename (str): The csv file path. Keep the PGE csv naming convention for proper parsing.
+        filename (streamlit UploadedFile): The csv file. Keep the PGE csv naming convention for proper parsing.
 
     Returns:
         df (pd.DataFrame): A dataframe of energy data. Dates are converted for proper merging with other 
@@ -18,31 +18,32 @@ def process_csv(filename: str): # -> tuple[pd.DataFrame, str]:
     df = pd.read_csv(filename, header=4, parse_dates=['START DATE', 'END DATE'])
     df['MID-DATE'] = df['START DATE'] + datetime.timedelta(days=5) # to accomodate month-end start dates
     df['MONTH'] = df['MID-DATE'].dt.to_period('M')
-    df_name = re.search(r'_([^_]*)_', filename).group(1)
+    df_name = re.search(r'_([^_]*)_', filename.name).group(1)
     return df, df_name
 
-def combine_and_process(df1: pd.DataFrame, df1_name: str, df2: pd.DataFrame, df2_name: str) -> pd.DataFrame:
+def combine_and_process(dictionary: dict) -> pd.DataFrame:
     """Combines gas and electric data and computes rolling 12-month cost average.
 
     Args:
-        df1 (pd.DataFrame): Gas or electric data parsed by the function process_csv.
-        df1_name (str): The energy type of the first dataframe. This will be used as the suffix
-            when the data is combined.
-        df2 (pd.DataFrame): The other energy type data parsed by the function process_csv.
-        df2_name (str): The energy type of the second dataframe. This will be used as the suffix
-            when the data is combined.
+        dictionary (dict): A dictionary with entries in the form {name:dataframe}, where
+            name (str) is the energy type of the first dataframe. This will be used as the suffix
+            when the data is combined. And where dataframe (pd.DataFrame) is the gas or
+            electric data parsed by the function process_csv.
 
     Returns:
         df (pd.DataFrame): A dataframe of the gas and electric data combined, with the rolling 12-month
             cost average computed.
     """
-
+    df1_name = list(dictionary.keys())[0]
+    df2_name = list(dictionary.keys())[1]
+    df1 = dictionary[df1_name]
+    df2 = dictionary[df2_name]
     df = pd.merge(left=df1, right=df2, left_on='MONTH', right_on='MONTH',
                 suffixes=[f'_{df1_name}', f'_{df2_name}'])
     df['TOTAL_COST'] = df[f'COST_{df1_name}'].str.slice(start=1).astype(float)\
         + df[f'COST_{df2_name}'].str.slice(start=1).astype(float)
     df.sort_values(by='MONTH', ascending=True)
-    df['1Y_ROLLING_AVG'] = df.rolling(12).mean().round(2)['TOTAL_COST']
+    df['1Y_ROLLING_AVG'] = df.rolling(12).mean(numeric_only=True).round(2)['TOTAL_COST']
     return df
 
 def cost_comparison_quarterly_one_year(row_index: int) -> pd.DataFrame:

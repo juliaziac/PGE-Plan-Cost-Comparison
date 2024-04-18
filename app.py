@@ -16,8 +16,13 @@ Questions for analysis:
 """)
 
 st.header("Upload PGE billing CSVs")
-# TODO: fix 403 error with csv file upload
-#uploaded_files_csv = st.file_uploader("Upload your CSV file(s)", type=['csv'],accept_multiple_files=True)
-#if uploaded_files_csv is not None:
-#    st.write("success")
-st.button("Use Example Data")
+uploaded_files_csv = st.file_uploader("Upload your CSV file(s)", type=['csv'],accept_multiple_files=True)
+if uploaded_files_csv is not None:
+    processed_files = {} # dictionary entries of the form {name:df}
+    for i in range(len(uploaded_files_csv)):
+        df, name = utils.processing_functions.process_csv(uploaded_files_csv[i])
+        processed_files[name] = df
+    processed_df = utils.processing_functions.combine_and_process(processed_files)
+    st.table(processed_df)
+
+#st.button("Use Example Data")
