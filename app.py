@@ -3,6 +3,7 @@ import utils.processing_functions
 import os
 import pandas as pd ###
 
+# Background text
 st.title("PGE's \"Budget Billing\": should you switch?")
 st.markdown("""
 PGE has a new program, \"Budget Billing\":
@@ -17,6 +18,7 @@ Questions for analysis:
 + If so, what is the optimal month to start (given the 4-month update cycle)?
 """)
 
+# File upload
 st.header("Upload PGE billing CSVs")
 files_ready = False
 uploaded_files_csv = st.file_uploader("Upload your CSV file(s):", type=['csv'],accept_multiple_files=True)
@@ -58,13 +60,18 @@ elif len(uploaded_files_csv) == 2:
     processed_df = utils.processing_functions.combine_and_process(processed_files)
     files_ready = True
 
+# Plan summary and graph
 if files_ready == True:
     st.header("Best plan given historical data")
     total = utils.processing_functions.total_analysis(processed_df)
     best_plan = total.iloc[total['cheaper_by_$'].idxmax()]
     st.write(f"The best plan is the **:green[{best_plan['cheaper_plan']} plan]** and the time to start is {best_plan['start_month']}, \
-        which would be cheaper by ${best_plan['cheaper_by_$'].round(2)}.")
+        which would be cheaper by **:green[${best_plan['cheaper_by_$'].round(2)}]**.")
     with st.expander("See other start months optimal plan choices"):
         st.dataframe(total)
+    
+    st.header("Interactive graph")
+
+
 else:
     pass
