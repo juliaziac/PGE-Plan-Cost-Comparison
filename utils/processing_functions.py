@@ -1,9 +1,10 @@
 import pandas as pd
 import numpy as np
 import re
+import os
 import datetime
 
-def process_csv(filename) -> tuple[pd.DataFrame, str]:
+def process_csv(filename, string_input=False) -> tuple[pd.DataFrame, str]:
     """Converts a PGE csv file into a dataframe and its energy type name.
 
     Args:
@@ -18,7 +19,11 @@ def process_csv(filename) -> tuple[pd.DataFrame, str]:
     df = pd.read_csv(filename, header=4, parse_dates=['START DATE', 'END DATE'])
     df['MID-DATE'] = df['START DATE'] + datetime.timedelta(days=5) # to accomodate month-end start dates
     df['MONTH'] = df['MID-DATE'].dt.to_period('M')
-    df_name = re.search(r'_([^_]*)_', filename.name).group(1)
+    if string_input==True:
+        name = os.path.basename(filename)
+        df_name = re.search(r'_([^_]*)_', name).group(1)
+    else:
+        df_name = re.search(r'_([^_]*)_', filename.name).group(1)
     return df, df_name
 
 def combine_and_process(dictionary: dict) -> pd.DataFrame:

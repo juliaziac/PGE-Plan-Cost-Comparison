@@ -38,7 +38,7 @@ if len(uploaded_files_csv) == 0:
                     ]
         processed_files = {} # dictionary entries of the form {name:df}
         for file in filenames:
-            df, name = utils.processing_functions.process_csv(file)
+            df, name = utils.processing_functions.process_csv(file, string_input=True)
             processed_files[name] = df
         processed_df = utils.processing_functions.combine_and_process(processed_files)
         files_ready = True
