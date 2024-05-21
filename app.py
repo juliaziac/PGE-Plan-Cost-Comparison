@@ -1,7 +1,12 @@
 import streamlit as st
 import utils.processing_functions
 import os
+import numpy as np
 import pandas as pd ###
+import datetime
+from bokeh.plotting import figure
+from bokeh.models import HoverTool
+from bokeh.models import ColumnDataSource
 
 # Background text
 st.title("PGE's \"Budget Billing\": should you switch?")
@@ -26,29 +31,18 @@ if len(uploaded_files_csv) == 0:
     #pass
     st.write("Or, use example data:")
     if st.button("Use Example Data"):
-        ###st.dataframe(pd.read_csv("./data/pge_electric_billing_data_4323839271_2021-04-01_to_2024-02-29.csv", header=4))
         source_dir = os.path.dirname(__file__)
-        st.write(source_dir)
-        for file in os.listdir("utils/example_data"):
-            filename = os.path.join(source_dir, file)
-            file_open = open(filename, "r")
-            st.write(file_open.readline([0]))
-            file_open.close()
-            #st.write(__file__)
-            #st.dataframe(pd.read_csv(__file__, on_bad_lines='skip'))
-            st.dataframe(pd.read_csv(os.path.join(source_dir, file)))
-            #st.write(os.path.abspath(file))
-            #st.dataframe(pd.read_csv(os.path.join(os.getcwd(), "data", file), header=4))
-            #st.dataframe(pd.read_csv("/Users/juju/Documents/Programming/Python/PGE_avg/data/pge_electric_billing_data_4323839271_2021-04-01_to_2024-02-29.csv", header=4))
-        #st.write(os.getcwd())
-
-        #processed_files = {} # dictionary entries of the form {name:df}
-        #for file in os.listdir("utils/example_data"):
-        #    df, name = utils.processing_functions.process_csv(file)
-        #    processed_files[name] = df
-        #processed_df = utils.processing_functions.combine_and_process(processed_files)
-        #files_ready = True
-        #st.dataframe(processed_df)
+        #st.dataframe(pd.read_csv(os.path.join(source_dir, "utils", "example_data", "pge_electric_billing_data_XXXXX_2021-04-01_to_2024-02-29.csv"), header=4))
+        filenames = [os.path.join(source_dir, "utils", "example_data", "pge_electric_billing_data_XXXXX_2021-04-01_to_2024-02-29.csv"),
+                    os.path.join(source_dir, "utils", "example_data", "pge_gas_billing_data_XXXXX_2021-04-02_to_2024-03-01.csv")
+                    ]
+        processed_files = {} # dictionary entries of the form {name:df}
+        for file in filenames:
+            df, name = utils.processing_functions.process_csv(file)
+            processed_files[name] = df
+        processed_df = utils.processing_functions.combine_and_process(processed_files)
+        files_ready = True
+        st.dataframe(processed_df)
 
 elif len(uploaded_files_csv) == 1:
     st.write(":red[Upload **two** files: one for gas and one for electric.]")
@@ -69,9 +63,45 @@ if files_ready == True:
         which would be cheaper by **:green[${best_plan['cheaper_by_$'].round(2)}]**.")
     with st.expander("See other start months optimal plan choices"):
         st.dataframe(total)
-    
+
+###else:###
+###    pass###
+
+
     st.header("Interactive graph")
+    processed_df_cds = ColumnDataSource(processed_df)
+    start_month_index = np.isnan(processed_df['1Y_ROLLING_AVG']).argmin(axis=0)
+    x = processed_df['MONTH'].dt.to_timestamp()  
+    x_bar_width = datetime.timedelta(days=20)
+    y_bar = processed_df['TOTAL_COST'] 
+    #y_seg = total['1Y_ROLLING_AVG']
+    tooltips = [
+            ('Month', '@MONTH{%b %Y}'),
+            ('Actual Cost', '@TOTAL_COST{$0.00}')
+            ]
+    formatters={'@MONTH': 'datetime'}
+
+    fig = figure(###plot_height=400,
+             ###plot_width=1000,
+             x_axis_label='Month',
+             x_axis_type='datetime',
+             y_axis_label='Total Cost ($)',
+             y_axis_type='linear',
+             title='Monthly Total PGE Cost',
+             tools=['xpan', 'tap', 'hover', 'reset', 'save'],
+             tooltips=tooltips)
+    fig.vbar(x='MONTH', bottom=0, top='TOTAL_COST', width=x_bar_width, source=processed_df_cds, legend_label='Actual Monthy Cost')
+
+    fig.add_tools(HoverTool(tooltips=tooltips, formatters=formatters))
+    for i in range(start_month_index, len(processed_df.index), 4):
+        fig.segment(x0=x[i]-x_bar_width/2, y0=y_bar[i], x1=x[i+3]+x_bar_width/2, y1=y_bar[i],\
+                    color='red', width=5, legend_label='Budget Billing Cost')
+    fig.legend.location = 'top_left'
+    fig.toolbar.logo = None
+
+    st.bokeh_chart(fig, use_container_width=True)
 
 
 else:
     pass
+
