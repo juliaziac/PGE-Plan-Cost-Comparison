@@ -32,7 +32,6 @@ if len(uploaded_files_csv) == 0:
     st.write("Or, use example data:")
     if st.button("Use Example Data"):
         source_dir = os.path.dirname(__file__)
-        #st.dataframe(pd.read_csv(os.path.join(source_dir, "utils", "example_data", "pge_electric_billing_data_XXXXX_2021-04-01_to_2024-02-29.csv"), header=4))
         filenames = [os.path.join(source_dir, "utils", "example_data", "pge_electric_billing_data_XXXXX_2021-04-01_to_2024-02-29.csv"),
                     os.path.join(source_dir, "utils", "example_data", "pge_gas_billing_data_XXXXX_2021-04-02_to_2024-03-01.csv")
                     ]
@@ -64,11 +63,7 @@ if files_ready == True:
     with st.expander("See other start months optimal plan choices"):
         st.dataframe(total)
 
-###else:###
-###    pass###
-
-
-    st.header("Interactive graph")
+    st.header("Hover graph")
     processed_df_cds = ColumnDataSource(processed_df)
     start_month_index = np.isnan(processed_df['1Y_ROLLING_AVG']).argmin(axis=0)
     x = processed_df['MONTH'].dt.to_timestamp()  
